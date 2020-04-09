@@ -1,283 +1,750 @@
-数据类型:
-------------------------------------------------------------------------
-1.声明变量
-var varName type
-var var1,var2… type
-var varName type = Value
-var varName1,varName2 type = Value1,Value2
-var varName1,varName2 = Value1,Value2
-varName1, varName2:=Value1, Value2
+# Go Cheat Sheet
 
-2.常量声明
-const varName = Value
-const varName type = Value
-const varName1,varName2 type = Value1,Value2
-const varName1,varName2 = Value1,Value2
+# Index
+1. [Basic Syntax](#basic-syntax)
+2. [Operators](#operators)
+    * [Arithmetic](#arithmetic)
+    * [Comparison](#comparison)
+    * [Logical](#logical)
+    * [Other](#other)
+3. [Declarations](#declarations)
+4. [Functions](#functions)
+    * [Functions as values and closures](#functions-as-values-and-closures)
+    * [Variadic Functions](#variadic-functions)
+5. [Built-in Types](#built-in-types)
+6. [Type Conversions](#type-conversions)
+7. [Packages](#packages)
+8. [Control structures](#control-structures)
+    * [If](#if)
+    * [Loops](#loops)
+    * [Switch](#switch)
+9. [Arrays, Slices, Ranges](#arrays-slices-ranges)
+    * [Arrays](#arrays)
+    * [Slices](#slices)
+    * [Operations on Arrays and Slices](#operations-on-arrays-and-slices)
+10. [Maps](#maps)
+11. [Structs](#structs)
+12. [Pointers](#pointers)
+13. [Interfaces](#interfaces)
+14. [Embedding](#embedding)
+15. [Errors](#errors)
+16. [Concurrency](#concurrency)
+    * [Goroutines](#goroutines)
+    * [Channels](#channels)
+    * [Channel Axioms](#channel-axioms)
+17. [Printing](#printing)
+18. [Reflection](#reflection)
+    * [Type Switch](#type-switch)
+    * [Examples](https://github.com/a8m/reflect-examples)
+19. [Snippets](#snippets)
+    * [Http-Server](#http-server)
 
-3.string
-string字符串类型值不可改变，只能重新指向新的字符串地址，原来的字符串废弃；但是可以切片，字符串可以使用+进行连接；
+## Credits
 
-4.iota
-iota用来声明enum，表示自加1，初始为0
+Most example code taken from [A Tour of Go](http://tour.golang.org/), which is an excellent introduction to Go.
+If you're new to Go, do that tour. Seriously.
 
-5.array
-//声明方式
-var arrayName [N]type
-arrayName := [N]type{v1,v2…}
+## Go in a Nutshell
 
-var arrayName [...]type
-arrayName := [...]type{v1,v2…}
+* Imperative language
+* Statically typed
+* Syntax tokens similar to C (but less parentheses and no semicolons) and the structure to Oberon-2
+* Compiles to native code (no JVM)
+* No classes, but structs with methods
+* Interfaces
+* No implementation inheritance. There's [type embedding](http://golang.org/doc/effective%5Fgo.html#embedding), though.
+* Functions are first class citizens
+* Functions can return multiple values
+* Has closures
+* Pointers, but not pointer arithmetic
+* Built-in concurrency primitives: Goroutines and Channels
 
-//数组声明可以嵌套
+# Basic Syntax
 
-var arrayName [N][N]type
-arrayName := [N][N]type{{v1,v2…}…}
+## Hello World
+File `hello.go`:
+```go
+package main
 
-6.slice
-//声明方式
-var sliceName []type
-sliceName := []type{v1,v2…}
+import "fmt"
 
-var sliceName [][]type
-sliceName := [][]type{{v1,v2…}…}
+func main() {
+    fmt.Println("Hello Go")
+}
+```
+`$ go run hello.go`
 
-slice保存的是引用而非实体
-在slice中有一些内置函数，len获取长度，cap获取最大容量，append追加数据，copy用来拷贝数据
+## Operators
+### Arithmetic
+|Operator|Description|
+|--------|-----------|
+|`+`|addition|
+|`-`|subtraction|
+|`*`|multiplication|
+|`/`|quotient|
+|`%`|remainder|
+|`&`|bitwise and|
+|`\|`|bitwise or|
+|`^`|bitwise xor|
+|`&^`|bit clear (and not)|
+|`<<`|left shift|
+|`>>`|right shift|
 
-7.map
+### Comparison
+|Operator|Description|
+|--------|-----------|
+|`==`|equal|
+|`!=`|not equal|
+|`<`|less than|
+|`<=`|less than or equal|
+|`>`|greater than|
+|`>=`|greater than or equal|
 
-//声明方式
-var mapName map[keyType]valueType
-mapName = make(map[keyType]valueType)
-mapName[k1] = v1
+### Logical
+|Operator|Description|
+|--------|-----------|
+|`&&`|logical and|
+|`\|\|`|logical or|
+|`!`|logical not|
 
-mapName := make(map[keyType]valueType)
-mapName[k1] = v1
+### Other
+|Operator|Description|
+|--------|-----------|
+|`&`|address of / create pointer|
+|`*`|dereference pointer|
+|`<-`|send / receive operator (see 'Channels' below)|
 
-var mapName = map[keyType]valueType{
-	"k1": "v1",
-	"k2": "v2",
+## Declarations
+Type goes after identifier!
+```go
+var foo int // declaration without initialization
+var foo int = 42 // declaration with initialization
+var foo, bar int = 42, 1302 // declare and init multiple vars at once
+var foo = 42 // type omitted, will be inferred
+foo := 42 // shorthand, only in func bodies, omit var keyword, type is always implicit
+const constant = "This is a constant"
+
+// iota can be used for incrementing numbers, starting from 0
+const (
+    _ = iota
+    a
+    b
+    c = 1 << iota
+    d
+)
+    fmt.Println(a, b) // 1 2 (0 is skipped)
+    fmt.Println(c, d) // 8 16 (2^3, 2^4)
+```
+
+## Functions
+```go
+// a simple function
+func functionName() {}
+
+// function with parameters (again, types go after identifiers)
+func functionName(param1 string, param2 int) {}
+
+// multiple parameters of the same type
+func functionName(param1, param2 int) {}
+
+// return type declaration
+func functionName() int {
+    return 42
 }
 
-mapName := map[keyType]valueType{
-	"k1": "v1",
-	"k2": "v2",
+// Can return multiple values at once
+func returnMulti() (int, string) {
+    return 42, "foobar"
 }
+var x, str = returnMulti()
 
-//嵌套
-type mapType map[keyType]valueType
-mapName := make(map[keyType]mapType)
-
-mapNameSub := make(mapType)
-mapNameSub[k1] = v1
-mapName[key1] = mapNameSub
-mapName[key2] = mapType{
-	"k1": "v1",
-	"k2": "v2",
+// Return multiple named results simply by return
+func returnMulti2() (n int, s string) {
+    n = 42
+    s = "foobar"
+    // n and s will be returned
+    return
 }
+var x, str = returnMulti2()
 
-// 查找键值是否存在
-if v, ok := mapName[k1]; ok {
-	fmt.Println(v)
-} else {
-	fmt.Println("Key Not Found")
-}
- 
-// 遍历map
-for k, v := range mapName {
-	fmt.Println(k, v)
-}
+```
 
-//删除
-delete(mapName, k1)
-
-make用于内建类型的内存分配，new用于各种类型的内存分配，new返回指针而make返回非0的值
-字典是无序的
-
-流程控制:
-------------------------------------------------------------------------
-//if语句不需要括号，在if语句中可以声明变量，用分好分割if语句的条件判断
-
-if n := 78;n <= 50 {
-
-} else if n < 20 {
-    //do something
-} else {
-    //do something
-}
-
-//for语句类似C语言
-for i := 0; i < 10; i++ {
-    if i>7 {
-        break;
+### Functions As Values And Closures
+```go
+func main() {
+    // assign a function to a name
+    add := func(a, b int) int {
+        return a + b
     }
-    if i=6 {
-        continue;
-    }
-}
-//range和python类似
-for _, c := range s {
-    fmt.Printf("%c,", c)
+    // use the name to call the function
+    fmt.Println(add(3, 4))
 }
 
-//break和continue可以跟标号，跳出多重循环。
-I:
-	for i := 0; i < 2; i++ {
-		for j := 0; j < 5; j++ {
-			if j == 2 {
-				break I
-			}
-			fmt.Println("hello")
-		}
-		fmt.Println("hi")
+// Closures, lexically scoped: Functions can access values that were
+// in scope when defining the function
+func scope() func() int{
+    outer_var := 2
+    foo := func() int { return outer_var}
+    return foo
+}
+
+func another_scope() func() int{
+    // won't compile because outer_var and foo not defined in this scope
+    outer_var = 444
+    return foo
+}
+
+
+// Closures
+func outer() (func() int, int) {
+    outer_var := 2
+    inner := func() int {
+        outer_var += 99 // outer_var from outer scope is mutated.
+        return outer_var
+    }
+    inner()
+    return inner, outer_var // return inner func and mutated outer_var 101
+}
+```
+
+### Variadic Functions
+```go
+func main() {
+	fmt.Println(adder(1, 2, 3)) 	// 6
+	fmt.Println(adder(9, 9))	// 18
+
+	nums := []int{10, 20, 30}
+	fmt.Println(adder(nums...))	// 60
+}
+
+// By using ... before the type name of the last parameter you can indicate that it takes zero or more of those parameters.
+// The function is invoked like any other function except we can pass as many arguments as we want.
+func adder(args ...int) int {
+	total := 0
+	for _, v := range args { // Iterates over the arguments whatever the number.
+		total += v
+	}
+	return total
+}
+```
+
+## Built-in Types
+```
+bool
+
+string
+
+int  int8  int16  int32  int64
+uint uint8 uint16 uint32 uint64 uintptr
+
+byte // alias for uint8
+
+rune // alias for int32 ~= a character (Unicode code point) - very Viking
+
+float32 float64
+
+complex64 complex128
+```
+
+## Type Conversions
+```go
+var i int = 42
+var f float64 = float64(i)
+var u uint = uint(f)
+
+// alternative syntax
+i := 42
+f := float64(i)
+u := uint(f)
+```
+
+## Packages
+* Package declaration at top of every source file
+* Executables are in package `main`
+* Convention: package name == last name of import path (import path `math/rand` => package `rand`)
+* Upper case identifier: exported (visible from other packages)
+* Lower case identifier: private (not visible from other packages)
+
+## Control structures
+
+### If
+```go
+func main() {
+	// Basic one
+	if x > 10 {
+		return x
+	} else if x == 10 {
+		return 10
+	} else {
+		return -x
 	}
 
+	// You can put one statement before the condition
+	if a := b + c; a < 42 {
+		return a
+	} else {
+		return a - 42
+	}
 
+	// Type assertion inside if
+	var val interface{}
+	val = "foo"
+	if str, ok := val.(string); ok {
+		fmt.Println(str)
+	}
+}
+```
 
-//switch语句不用break，如果想强行执行下面的case可以使用fallthrough
-
-switch finger := 8; finger {
-    case 1:
-        fmt.Println("1")
-    case 2:
-        fmt.Println("2")
-    case 3, 4:
-        fmt.Println("3 or 4")
-    default: //default case
-        fmt.Println("default")
+### Loops
+```go
+    // There's only `for`, no `while`, no `until`
+    for i := 1; i < 10; i++ {
+    }
+    for ; i < 10;  { // while - loop
+    }
+    for i < 10  { // you can omit semicolons if there is only a condition
+    }
+    for { // you can omit the condition ~ while (true)
+    }
+    
+    // use break/continue on current loop
+    // use break/continue with label on outer loop
+here:
+    for i := 0; i < 2; i++ {
+        for j := i + 1; j < 3; j++ {
+            if i == 0 {
+                continue here
+            }
+            fmt.Println(j)
+            if j == 2 {
+                break
+            }
+        }
     }
 
-//goto语句类似C语言，但是跳转到必须在当前函数内定义的标签
+there:
+    for i := 0; i < 2; i++ {
+        for j := i + 1; j < 3; j++ {
+            if j == 1 {
+                continue
+            }
+            fmt.Println(j)
+            if j == 2 {
+                break there
+            }
+        }
+    }
+```
+
+### Switch
+```go
+    // switch statement
+    switch operatingSystem {
+    case "darwin":
+        fmt.Println("Mac OS Hipster")
+        // cases break automatically, no fallthrough by default
+    case "linux":
+        fmt.Println("Linux Geek")
+    default:
+        // Windows, BSD, ...
+        fmt.Println("Other")
+    }
+
+    // as with for and if, you can have an assignment statement before the switch value
+    switch os := runtime.GOOS; os {
+    case "darwin": ...
+    }
+
+    // you can also make comparisons in switch cases
+    number := 42
+    switch {
+        case number < 42:
+            fmt.Println("Smaller")
+        case number == 42:
+            fmt.Println("Equal")
+        case number > 42:
+            fmt.Println("Greater")
+    }
+
+    // cases can be presented in comma-separated lists
+    var char byte = '?'
+    switch char {
+        case ' ', '?', '&', '=', '#', '+', '%':
+            fmt.Println("Should escape")
+    }
+```
+
+## Arrays, Slices, Ranges
+
+### Arrays
+```go
+var a [10]int // declare an int array with length 10. Array length is part of the type!
+a[3] = 42     // set elements
+i := a[3]     // read elements
+
+// declare and initialize
+var a = [2]int{1, 2}
+a := [2]int{1, 2} //shorthand
+a := [...]int{1, 2} // elipsis -> Compiler figures out array length
+```
+
+### Slices
+```go
+var a []int                              // declare a slice - similar to an array, but length is unspecified
+var a = []int {1, 2, 3, 4}               // declare and initialize a slice (backed by the array given implicitly)
+a := []int{1, 2, 3, 4}                   // shorthand
+chars := []string{0:"a", 2:"c", 1: "b"}  // ["a", "b", "c"]
+
+var b = a[lo:hi]	// creates a slice (view of the array) from index lo to hi-1
+var b = a[1:4]		// slice from index 1 to 3
+var b = a[:3]		// missing low index implies 0
+var b = a[3:]		// missing high index implies len(a)
+a =  append(a,17,3)	// append items to slice a
+c := append(a,b...)	// concatenate slices a and b
+
+// create a slice with make
+a = make([]byte, 5, 5)	// first arg length, second capacity
+a = make([]byte, 5)	// capacity is optional
+
+// create a slice from an array
+x := [3]string{"Лайка", "Белка", "Стрелка"}
+s := x[:] // a slice referencing the storage of x
+```
+
+### Operations on Arrays and Slices
+`len(a)` gives you the length of an array/a slice. It's a built-in function, not a attribute/method on the array.
+
+```go
+// loop over an array/a slice
+for i, e := range a {
+    // i is the index, e the element
+}
+
+// if you only need e:
+for _, e := range a {
+    // e is the element
+}
+
+// ...and if you only need the index
+for i := range a {
+}
+
+// In Go pre-1.4, you'll get a compiler error if you're not using i and e.
+// Go 1.4 introduced a variable-free form, so that you can do this
+for range time.Tick(time.Second) {
+    // do it once a sec
+}
+
+```
+
+## Maps
+
+```go
+var m map[string]int
+m = make(map[string]int)
+m["key"] = 42
+fmt.Println(m["key"])
+
+delete(m, "key")
+
+elem, ok := m["key"] // test if key "key" is present and retrieve it, if so
+
+// map literal
+var m = map[string]Vertex{
+    "Bell Labs": {40.68433, -74.39967},
+    "Google":    {37.42202, -122.08408},
+}
+
+// iterate over map content
+for key, value := range m {
+}
+
+```
+
+## Structs
+
+There are no classes, only structs. Structs can have methods.
+```go
+// A struct is a type. It's also a collection of fields
+
+// Declaration
+type Vertex struct {
+    X, Y int
+}
+
+// Creating
+var v = Vertex{1, 2}
+var v = Vertex{X: 1, Y: 2} // Creates a struct by defining values with keys
+var v = []Vertex{{1,2},{5,2},{5,5}} // Initialize a slice of structs
+
+// Accessing members
+v.X = 4
+
+// You can declare methods on structs. The struct you want to declare the
+// method on (the receiving type) comes between the the func keyword and
+// the method name. The struct is copied on each method call(!)
+func (v Vertex) Abs() float64 {
+    return math.Sqrt(v.X*v.X + v.Y*v.Y)
+}
+
+// Call method
+v.Abs()
+
+// For mutating methods, you need to use a pointer (see below) to the Struct
+// as the type. With this, the struct value is not copied for the method call.
+func (v *Vertex) add(n float64) {
+    v.X += n
+    v.Y += n
+}
+
+```
+**Anonymous structs:**
+Cheaper and safer than using `map[string]interface{}`.
+```go
+point := struct {
+	X, Y int
+}{1, 2}
+```
+
+## Pointers
+```go
+p := Vertex{1, 2}  // p is a Vertex
+q := &p            // q is a pointer to a Vertex
+r := &Vertex{1, 2} // r is also a pointer to a Vertex
+
+// The type of a pointer to a Vertex is *Vertex
+
+var s *Vertex = new(Vertex) // new creates a pointer to a new struct instance
+```
+
+## Interfaces
+```go
+// interface declaration
+type Awesomizer interface {
+    Awesomize() string
+}
+
+// types do *not* declare to implement interfaces
+type Foo struct {}
+
+// instead, types implicitly satisfy an interface if they implement all required methods
+func (foo Foo) Awesomize() string {
+    return "Awesome!"
+}
+```
+
+## Embedding
+
+There is no subclassing in Go. Instead, there is interface and struct embedding.
+
+```go
+// ReadWriter implementations must satisfy both Reader and Writer
+type ReadWriter interface {
+    Reader
+    Writer
+}
+
+// Server exposes all the methods that Logger has
+type Server struct {
+    Host string
+    Port int
+    *log.Logger
+}
+
+// initialize the embedded type the usual way
+server := &Server{"localhost", 80, log.New(...)}
+
+// methods implemented on the embedded struct are passed through
+server.Log(...) // calls server.Logger.Log(...)
+
+// the field name of the embedded type is its type name (in this case Logger)
+var logger *log.Logger = server.Logger
+```
+
+## Errors
+There is no exception handling. Functions that might produce an error just declare an additional return value of type `Error`. This is the `Error` interface:
+```go
+type error interface {
+    Error() string
+}
+```
+
+A function that might return an error:
+```go
+func doStuff() (int, error) {
+}
 
 func main() {
- 
-    //goto可以用在任何地方，但是不能夸函数使用
-    fmt.Println("11111111111111")
- 
-    //go to的作用是跳转，中间的语句不执行，无条件跳转
-    goto End //goto是关键字， End是用户起的名字， 他叫标签
- 
-    fmt.Println("222222222222222")
- 
-End:
-    fmt.Println("3333333333333")
- 
+    result, err := doStuff()
+    if err != nil {
+        // handle error
+    } else {
+        // all is good, use result
+    }
 }
+```
 
+# Concurrency
 
-函数：
-------------------------------------------------------------------------
-//声明：
-func funcName(input1 type1, input2 type2) (output1 type1, output2 type2)
+## Goroutines
+Goroutines are lightweight threads (managed by Go, not OS threads). `go f(a, b)` starts a new goroutine which runs `f` (given `f` is a function).
 
-//函数作为类型
-type typeName func(input1 inputType1 , input2 inputType2 [, ...]) (result1 resultType1 [, ...])
-
-//函数作为类型例子:
-type A func(int, int)
-
-func (f A)Serve() {
-    fmt.Println("serve2")
-}
-
-func serve(int,int) {
-    fmt.Println("serve1")
+```go
+// just a function (which can be later started as a goroutine)
+func doStuff(s string) {
 }
 
 func main() {
-    a := A(serve)
-    a(1,2)
-    a.Serve()
+    // using a named function in a goroutine
+    go doStuff("foobar")
+
+    // using an anonymous inner function in a goroutine
+    go func (x int) {
+        // function body goes here
+    }(42)
+}
+```
+
+## Channels
+```go
+ch := make(chan int) // create a channel of type int
+ch <- 42             // Send a value to the channel ch.
+v := <-ch            // Receive a value from ch
+
+// Non-buffered channels block. Read blocks when no value is available, write blocks until there is a read.
+
+// Create a buffered channel. Writing to a buffered channels does not block if less than <buffer size> unread values have been written.
+ch := make(chan int, 100)
+
+close(ch) // closes the channel (only sender should close)
+
+// read from channel and test if it has been closed
+v, ok := <-ch
+
+// if ok is false, channel has been closed
+
+// Read from channel until it is closed
+for i := range ch {
+    fmt.Println(i)
 }
 
-函数的值操作和指针操作类似C语言，内置类型中的string,slice,map直接使用的是类似的指针传递，不用使用取地址符，但是，如果需要改变slice的长度，则需要取地址传指针。
-defer语句用来表示在函数返回前执行的语句。
-import用来导入包，package用来导出包，包操作使用.操作符
-
-
-Struct类型
-------------------------------------------------------------------------
-//声明方式：
-
-type Person struct {
-    name string
-    age int
+// select blocks on multiple channel operations, if one unblocks, the corresponding case is executed
+func doStuff(channelOut, channelIn chan int) {
+    select {
+    case channelOut <- 42:
+        fmt.Println("We could write to channelOut!")
+    case x := <- channelIn:
+        fmt.Println("We could read from channelIn")
+    case <-time.After(time.Second * 1):
+        fmt.Println("timeout")
+    }
 }
+```
 
-匿名方式，匿名方式下A含有B的所有类型
+### Channel Axioms
+- A send to a nil channel blocks forever
 
-type Student struct {
-    Person  // 默认Person的所有字段
-    speciality string
-}
-如果匿名类型中有字段和本身有冲突，可以使用匿名类型+.访问
+  ```go
+  var c chan string
+  c <- "Hello, World!"
+  // fatal error: all goroutines are asleep - deadlock!
+  ```
+- A receive from a nil channel blocks forever
 
-类型的方法声明：
+  ```go
+  var c chan string
+  fmt.Println(<-c)
+  // fatal error: all goroutines are asleep - deadlock!
+  ```
+- A send to a closed channel panics
 
-  func (r ReceiverType) funcName(parameters) (results)
-可以使用：type typeName typeLiteral来自定义类型，定义完以后可以使用方法来扩展类型的功能。
+  ```go
+  var c = make(chan string, 1)
+  c <- "Hello, World!"
+  close(c)
+  c <- "Hello, Panic!"
+  // panic: send on closed channel
+  ```
+- A receive from a closed channel returns the zero value immediately
 
-需要改变struct内部的值时，需要将ReceiverType定义为*指针类型，但是调用的时候不需要，go语言自动帮你完成了。
-
-方法可以继承，可以重载
-
-
-interface接口
-------------------------------------------------------------------------
-type InterfaceName interface用来定义inerface
-
-interface类型定义了一组方法，如果某个对象实现了某个接口的所有方法，则此对象就实现了此接口。
-
-空interface(interface{})不包含任何的method，正因为如此，所有的类型都实现了空interface
-
-一个函数把interface{}作为参数，那么他可以接受任意类型的值作为参数，如果一个函数返回interface{},那么也就可以返回任意类型的值
-
-value, ok = element.(T)，这里value就是变量的值，ok是一个bool类型，element是interface变量，T是断言的类型，如果ok为true则表示，element确实是T类型的。
-
-interface可以嵌套
-
-并发
-------------------------------------------------------------------------
-使用go关键字+函数名实现并发
-
-使用channel实现线程间通讯，channel通过make构造，使用<-来发送和接受数据。
-
-chan是channel的关键字，后面跟数据类型ch <- v发送数据，v:=<-ch接收数据，ch是chan类型。
-
-  package main
-  import "fmt"
-  func sum(a []int, c chan int) {
-      total := 0
-      for _, v := range a {
-          total += v
-      }
-      c <- total  // send total to c
+  ```go
+  var c = make(chan int, 2)
+  c <- 1
+  c <- 2
+  close(c)
+  for i := 0; i < 3; i++ {
+      fmt.Printf("%d ", <-c)
   }
+  // 1 2 0
+  ```
 
-  func main() {
-      a := []int{7, 2, 8, -9, 4, 0}
-      c := make(chan int)
-      go sum(a[:len(a)/2], c)
-      go sum(a[len(a)/2:], c)
-      x, y := <-c, <-c  // receive from c
-      fmt.Println(x, y, x + y)
-  }
-channel默认是阻塞形式的，可以进行线程同步。
+## Printing
 
-ch := make(chan type, value)构造channel时可通过设置不同的value来设定channl的buffer长度。
+```go
+fmt.Println("Hello, 你好, नमस्ते, Привет, ᎣᏏᏲ") // basic print, plus newline
+p := struct { X, Y int }{ 17, 2 }
+fmt.Println( "My point:", p, "x coord=", p.X ) // print structs, ints, etc
+s := fmt.Sprintln( "My point:", p, "x coord=", p.X ) // print to string variable
 
-close用来关闭channel
+fmt.Printf("%d hex:%x bin:%b fp:%f sci:%e",17,17,17,17.0,17.0) // c-ish format
+s2 := fmt.Sprintf( "%d %f", 17, 17.0 ) // formatted print to string variable
 
-使用select+case来选择多个channel
+hellomsg := `
+ "Hello" in Chinese is 你好 ('Ni Hao')
+ "Hello" in Hindi is नमस्ते ('Namaste')
+` // multi-line string literal, using back-tick at beginning and end
+```
 
-使用select + case <- time.After(5 * time.Second)来设定超时
+## Reflection
+### Type Switch
+A type switch is like a regular switch statement, but the cases in a type switch specify types (not values), and those values are compared against the type of the value held by the given interface value.
+```go
+func do(i interface{}) {
+	switch v := i.(type) {
+	case int:
+		fmt.Printf("Twice %v is %v\n", v, v*2)
+	case string:
+		fmt.Printf("%q is %v bytes long\n", v, len(v))
+	default:
+		fmt.Printf("I don't know about type %T!\n", v)
+	}
+}
 
-Goexit 退出当前执行的goroutine，但是defer函数还会继续调用
+func main() {
+	do(21)
+	do("hello")
+	do(true)
+}
+```
 
-Gosched 让出当前goroutine的执行权限，调度器安排其他等待的任务运行，并在下次某个时候从该位置恢复执行。
+# Snippets
 
-NumCPU 返回 CPU 核数量
+## HTTP Server
+```go
+package main
 
-NumGoroutine 返回正在执⾏行和排队的任务总数
+import (
+    "fmt"
+    "net/http"
+)
 
-GOMAXPROCS 用来设置可以运行的CPU核数~
+// define a type for the response
+type Hello struct{}
+
+// let that type implement the ServeHTTP method (defined in interface http.Handler)
+func (h Hello) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+    fmt.Fprint(w, "Hello!")
+}
+
+func main() {
+    var h Hello
+    http.ListenAndServe("localhost:4000", h)
+}
+
+// Here's the method signature of http.ServeHTTP:
+// type Handler interface {
+//     ServeHTTP(w http.ResponseWriter, r *http.Request)
+// }
+```
+
+
